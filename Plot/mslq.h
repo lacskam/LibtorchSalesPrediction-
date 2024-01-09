@@ -49,5 +49,6 @@ QMap<QDateTime,qint32> getNumSalesProd(qint32 *prodId,QList<Data> *dataFromDb, Q
 
 bool dateCheker(const QDate *date, QList<QDate> *enddate);
 
+void importFullInfo(QList<Data> *data);
 
 #endif // MSQL_H

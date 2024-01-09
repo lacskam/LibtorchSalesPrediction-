@@ -36,7 +36,7 @@ Plot::Plot(QWidget *parent, QList<Data> *dataFromDb, qint32 *pickedprod, QList<Q
     });
     QPushButton *btnOpenFile = new QPushButton("Open flie");
     connect(btnOpenFile, &QPushButton::clicked, this, [=]() {
-       openfile();
+       openfile(axisY, axisX);
     });
      hb->addWidget(btnGetFile);
      hb->addWidget(btnOpenFile);
@@ -87,7 +87,7 @@ Plot::Plot(QWidget *parent, QList<Data> *dataFromDb, qint32 *pickedprod, QList<Q
     vb->addWidget(chartView);
     vb->addLayout(hb);
 }
-void Plot::openfile() {
+void Plot::openfile(QValueAxis *axisY, QDateTimeAxis *axisX) {
     QString filePath = QFileDialog::getOpenFileName(nullptr, "Выберите файл", "", "Файлы с расширением .sex (*.sex);;Все файлы (*.*)");
     int status =0;
     QString fileCont;
@@ -117,8 +117,9 @@ void Plot::openfile() {
         QSplineSeries *ser = new QSplineSeries();
         list = fileCont.split('\n');
         for (int i=0;i<list.size()-1;i++) {
-            dates.push_back(QDateTime::fromString(list[i].split(" ")[1], "yyyy.MM.dd"));
-            values.push_back(list[i].split(" ")[0].toInt());
+            dates.push_back(QDateTime(QDate(list[i].split(" ")[1].split(".")[0].toInt(),list[i].split(" ")[1].split(".")[1].toInt(),list[i].split(" ")[1].split(".")[2].toInt())));
+            qDebug()<<dates[i];
+            values.push_back(list[i].split(" ")[0].toFloat());
         }
     \
 

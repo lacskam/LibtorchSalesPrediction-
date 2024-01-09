@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.18 FATAL_ERROR)
 project(neiro LANGUAGES CXX)
 
-# Укажите путь к директории, содержащей TorchConfig.cmake
+
 set(Torch_DIR /home/asdxx/QtPr/Project/libtorch/share/cmake/Torch)
 
 find_package(Torch REQUIRED)
@@ -16,6 +16,8 @@ set(CMAKE_AUTORCC ON)
 
 add_executable(neiro
   main.cpp
+  file.cpp
+  file.h
 )
 
 target_link_libraries(neiro PRIVATE ${TORCH_LIBRARIES} Qt${QT_VERSION_MAJOR}::Core Qt${QT_VERSION_MAJOR}::Widgets Qt${QT_VERSION_MAJOR}::Sql)

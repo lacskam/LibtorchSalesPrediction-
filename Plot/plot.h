@@ -21,7 +21,7 @@ public:
 public slots:
     void update(QList<Data> *dataFromDb, DB *dbase1, QValueAxis *axisY, QDateTimeAxis *axisX, QSpinBox *lePickedProd, QDateEdit *leFirstDate, QDateEdit *leSecondDate,QMap<QDateTime,qint32> *mapSaless);
     void getfile(QSpinBox *lePickedProd,QMap<QDateTime,qint32> *mapSales);
-    void openfile();
+    void openfile(QValueAxis *axisY, QDateTimeAxis *axisX);
 
 
 private:

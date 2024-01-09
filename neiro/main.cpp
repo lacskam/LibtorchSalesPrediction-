@@ -1,151 +1,168 @@
-#include <torch/torch.h>
-#include <iostream>
-#include <vector>
-#include <QFileDialog>
-
-std::vector<std::tuple<int, int, int, float>> data;
+#include"file.h"
+#include <QApplication>
 
 
 
-QString getfile() {
-    QString filePath = QFileDialog::getOpenFileName(nullptr, "Выберите файл", "", "Файлы с расширением .sex (*.sex);;Все файлы (*.*)");
-
-    if (!filePath.isEmpty()) {
-
-           QFile file(filePath);
-
-           if (file.open(QIODevice::ReadOnly | QIODevice::Text)) {
-               QTextStream stream(&file);
-
-
-               QString fileContents = stream.readAll();
-               qDebug() << "Содержимое файла:" << fileContents;
-
-               file.close();
-
-
-               QList<QString> temp = fileContents.split("\n");
-               for (int i =0;i<temp.size();i++) {
-                    data.push_back({QString::number(temp[i].split(" ")[0]).toInt(),QString::number(temp[i].split(" ")[1].split(".")[2]).toInt(),
-                                    QString::number(temp[i].split(" ")[1].split(".")[1]).toInt(),QString::number(temp[i].split(" ")[2]).toFloat());
-               }
+const int input_size = 3;
+const int output_size = 1;
+const int hidden_size = 1024;
+const int num_epochs = 50;
+const double learning_rate =0.001;
 
 
 
-           } else {
-               qDebug() << "Ошибка открытия файла для чтения";
-           }
-       } else {
-           qDebug() << "Отменено пользователем";
-       }
 
 
+std::tuple<torch::Tensor, torch::Tensor, torch::Tensor, torch::Tensor> normalize_data(
+    const std::vector<std::tuple<int, int, int, float>>& data) {
+    std::vector<int> ids, days, months;
+    std::vector<float> sales;
 
+    std::transform(data.begin(), data.end(), std::back_inserter(ids), [](const auto& tup) { return std::get<0>(tup); });
+    std::transform(data.begin(), data.end(), std::back_inserter(days), [](const auto& tup) { return std::get<1>(tup); });
+    std::transform(data.begin(), data.end(), std::back_inserter(months), [](const auto& tup) { return std::get<2>(tup); });
+    std::transform(data.begin(), data.end(), std::back_inserter(sales), [](const auto& tup) { return std::get<3>(tup); });
+
+    torch::Tensor ids_tensor = torch::tensor(ids, torch::kFloat32).sub_(torch::mean(torch::tensor(ids, torch::kFloat32))).div_(torch::std(torch::tensor(ids, torch::kFloat32)));
+    torch::Tensor days_tensor = torch::tensor(days, torch::kFloat32).sub_(torch::mean(torch::tensor(days, torch::kFloat32))).div_(torch::std(torch::tensor(days, torch::kFloat32)));
+    torch::Tensor months_tensor = torch::tensor(months, torch::kFloat32).sub_(torch::mean(torch::tensor(months, torch::kFloat32))).div_(torch::std(torch::tensor(months, torch::kFloat32)));
+    torch::Tensor sales_tensor = torch::tensor(sales, torch::kFloat32).sub_(torch::mean(torch::tensor(sales, torch::kFloat32))).div_(torch::std(torch::tensor(sales, torch::kFloat32)));
+
+    return std::make_tuple(ids_tensor, days_tensor, months_tensor, sales_tensor);
 }
-// Определение нейронной сети
-struct DemandPredictionNet : torch::nn::Module {
-    DemandPredictionNet(bool is_training=true) {
-        // Определение входных и выходных слоев
-        if (is_training) {
-            input_layer = register_module("input_layer", torch::nn::Linear(3, 64));  // В обучающем режиме 4 входа
-        } else {
-            input_layer = register_module("input_layer", torch::nn::Linear(3, 64));  // В тестовом режиме 3 вахода
-        }
-        hidden_layer = register_module("hidden_layer", torch::nn::Linear(64, 32));
-        output_layer = register_module("output_layer", torch::nn::Linear(32, 1));
+
+
+
+
+
+class SalesPredictionModel : public torch::nn::Module {
+public:
+    SalesPredictionModel() {
+
+        lstm1 = register_module("lstm1", torch::nn::LSTM(torch::nn::LSTMOptions(input_size, hidden_size).num_layers(1).batch_first(true)));
+        linear = register_module("linear", torch::nn::Linear(hidden_size, output_size));
     }
 
-    // Функция прямого распространения
-    torch::Tensor forward(torch::Tensor input) {
-        input = torch::relu(input_layer(input));
-        input = torch::relu(hidden_layer(input));
-        return output_layer(input);
+    torch::Tensor forward(torch::Tensor id_tensor, torch::Tensor days_tensor, torch::Tensor months_tensor) {
+
+        auto input_tensor = torch::stack({id_tensor, days_tensor, months_tensor}).unsqueeze(0).transpose(1, 2);
+
+
+
+
+
+
+
+
+        auto lstm_output = lstm1->forward(input_tensor);
+        auto lstm_out = std::get<0>(lstm_output).squeeze(0);
+        return linear->forward(lstm_out.unsqueeze(0));
+
+
     }
 
-    // Слои нейронной сети
-    torch::nn::Linear input_layer{nullptr}, hidden_layer{nullptr}, output_layer{nullptr};
+private:
+
+    torch::nn::LSTM lstm1 = nullptr;
+    torch::nn::Linear linear = nullptr;
+
+
+
 };
 
-// Функция генерации случайных тестовых данных
-std::vector<std::tuple<int, int, int, float>> generate_test_data(int num_samples) {
-    std::vector<std::tuple<int, int, int, float>> data;
 
-    // Генерация случайных данных
-    for (int i = 0; i < num_samples; ++i) {
-        int product_id = rand() % 10 + 1; // Замените 10 на количество товаров в вашем наборе данных
-        int day = rand() % 31 + 1; // Замените 31 на количество дней в месяце
-        int month = rand() % 12 + 1; // Замените 12 на количество месяцев в году
-        float sales = static_cast<float>(rand() % 100); // Продажи могут быть любыми значениями
 
-        data.emplace_back(product_id, day, month, sales);
-    }
 
-    return data;
-}
 
-int main() {
-    // Инициализация нейронной сети в режиме обучения
-    DemandPredictionNet net(true);
-    torch::optim::Adam optimizer(net.parameters(), torch::optim::AdamOptions(0.001));
 
-    // Количество эпох обучения
-    int num_epochs = 1000;
 
-    // Генерация тестовых данных для обучения
-    std::vector<std::tuple<int, int, int, float>> training_data = generate_test_data(1000);
 
-    // Обучение нейронной сети
+
+int main(int argc, char* argv[]) {
+
+  QApplication a(argc, argv);
+  std::vector<std::tuple<int, int, int, float>> data =  getfile();
+
+
+    auto [id, days, months, sales] = normalize_data(data);
+    auto dataset = torch::data::datasets::TensorDataset({id, days, months, sales});
+    auto data_loader = torch::data::make_data_loader<torch::data::samplers::RandomSampler>(
+        std::move(dataset), torch::data::DataLoaderOptions().batch_size(64));
+
+
+    SalesPredictionModel model;
+
+    torch::optim::Adam optimizer(model.parameters(), torch::optim::AdamOptions(learning_rate));
+    torch::nn::MSELoss loss;
+
+
+
+
+
     for (int epoch = 0; epoch < num_epochs; ++epoch) {
-        // Подготовка данных для обучения
-        torch::Tensor input_data = torch::empty({training_data.size(), 3}, torch::kFloat32);
-        torch::Tensor target_data = torch::empty({training_data.size(), 1}, torch::kFloat32);
-
-        for (size_t i = 0; i < training_data.size(); ++i) {
-            input_data[i][0] = static_cast<float>(std::get<0>(training_data[i]));  // айди товара
-            input_data[i][1] = static_cast<float>(std::get<1>(training_data[i]));  // день
-            input_data[i][2] = static_cast<float>(std::get<2>(training_data[i]));  // месяц
 
 
-            target_data[i][0] = std::get<3>(training_data[i]);  // целевое значение: количество продаж
+        for (auto& batch : *data_loader) {
+
+            auto id_batch = batch.data()[0];
+            auto days_batch = batch.data()[1];
+            auto months_batch = batch.data()[2];
+
+            auto sales_batch1 = batch.data()[3];
+            auto sales_batch = torch::stack({sales_batch1}).unsqueeze(2);
+
+
+            optimizer.zero_grad();
+
+
+            auto predictions = model.forward(id_batch, days_batch, months_batch);
+            auto l = loss(predictions, sales_batch);
+
+
+            l.backward();
+            optimizer.step();
+
+
+
+            std::cout << "epoch: " << epoch<<"  loss:"<< l.item<float>() << std::endl;
+
         }
 
-        // Обнуление градиентов
-        optimizer.zero_grad();
-
-        // Прямое распространение
-        torch::Tensor output = net.forward(input_data);
-
-        // Расчет функции потерь
-        torch::Tensor loss = torch::mse_loss(output, target_data);
-
-        // Обратное распространение и оптимизация
-        loss.backward();
-        optimizer.step();
-
-        // Вывод текущей эпохи и потерь
-        if (epoch % 100 == 0) {
-            std::cout << "Epoch: " << epoch << ", Loss: " << loss.item<float>() << std::endl;
-        }
     }
 
-    // Тестирование нейронной сети на новых данных в режиме тестирования
-    DemandPredictionNet test_net(false);
 
-    std::vector<std::tuple<int, int, int>> test_inputs = {
-        {1, 30, 12}, // Пример входных данных для теста (product_id, day, month)
-        {2, 20, 5},
-        {3, 5, 8}
-        // Добавьте свои тестовые данные
-    };
+    model.eval();
 
-    for (const auto& test_input : test_inputs) {
-        torch::Tensor input_tensor = torch::tensor({std::get<0>(test_input), std::get<1>(test_input), std::get<2>(test_input)}, torch::kFloat32);
+    for (int i = 1; i <= 12; i++) {
+            for (int j = 1; j <= 28; j++) {
+                torch::Tensor test_id = torch::tensor({8}, torch::kFloat32);
+                torch::Tensor test_day = torch::tensor({j}, torch::kFloat32);
+                torch::Tensor test_month = torch::tensor({i}, torch::kFloat32);
+                torch::Tensor predicted_output = model.forward(test_id, test_day, test_month);
+                writeFile(8, j, i,predicted_output.item<float>() );
 
-        torch::Tensor predicted_demand = test_net.forward(input_tensor);
+                std::cout << "Predicted Output: " << predicted_output.item<float>() << std::endl;
+            }
 
-        std::cout << "For input: {" << std::get<0>(test_input) << ", " << std::get<1>(test_input) << ", " << std::get<2>(test_input)
-                  << "}, Predicted Demand: " << predicted_demand.item<float>() << std::endl;
     }
-
     return 0;
+
 }
+
+
+/*
+ *
+ *     for (int i = 1; i <= 12; i++) {
+        for (int j = 1; j <= 28; j++) {
+            test_inputs.push_back({8, j, i});
+        }
+    }
+
+ for (const auto& test_input : test_inputs) {
+    torch::Tensor input_tensor = torch::tensor({std::get<0>(test_input), std::get<1>(test_input), std::get<2>(test_input)}, torch::kFloat32);
+    torch::Tensor predicted_demand = test_net.forward(input_tensor);
+    writeFile(std::get<0>(test_input), std::get<1>(test_input), std::get<2>(test_input), predicted_demand.item<float>()*100);
+    std::cout << "For input: {" << std::get<0>(test_input) << ", " << std::get<1>(test_input) << ", " << std::get<2>(test_input)
+              << "}, Predicted Demand: " << predicted_demand.item<float>() << std::endl;
+}
+*/

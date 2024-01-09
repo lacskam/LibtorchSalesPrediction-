@@ -1,5 +1,5 @@
 #include"mslq.h"
-
+#include <vector>
 Data::Data(QString *dateStr) {
 
     date = QDate(dateStr->split("-")[0].toInt(),dateStr->split("-")[1].toInt(),dateStr->split("-")[2].toInt());
@@ -117,3 +117,66 @@ QMap<QDateTime,qint32> getNumSalesProd(qint32 *prodId,QList<Data> *dataFromDb, Q
     return numOfSales;
 }
 
+bool comp(const std::vector<int>& a, const std::vector<int>& b)
+{
+    if (a[2] < b[2]) {
+         return 1;
+    }
+
+    if (a[2] > b[2]) {
+         return 0;
+    }
+    if (a[2] == b[2]) {
+        if (a[1] < b[1]) {
+            return 1;
+         } else if (a[1] > b[1])   {
+            return 0;
+        } else if(a[1] == b[1]) {
+            return 0;
+        }
+    }
+
+}
+
+void importFullInfo(QList<Data> *data) {
+    QFile file("allprod.sex");
+    qint32 *a=new qint32;
+    QList<QDate> endDAte {QDate(2019,5,1),QDate(2021,8,26)};
+
+    QString tempstr;
+    std::vector<std::vector<int>> a1;
+    QMap<QDateTime,qint32> temp;
+    if (file.open(QIODevice::WriteOnly | QIODevice::Text)) {
+
+
+           QTextStream stream(&file);
+
+           for (int prod=1;prod<=153;prod++) {
+                *a=prod;
+
+               temp = getNumSalesProd(a,data,&endDAte);
+
+
+               for (auto i=temp.begin();i!=temp.end();i++) {
+
+                   a1.push_back({prod,i.key().date().day(),i.key().date().month(),i.value()});
+                  // stream << QString::number(prod)+" "+ QString::number(i.key().date().day())+" "+ QString::number(i.key().date().month())+" "+ QString::number(i.value())<< endl;
+               }
+
+           }
+            sort(a1.begin(),a1.end(),comp);
+           for (int i=0;i<a1.size();i++) {
+                    stream << QString::number(a1[i][0])+" "+ QString::number(a1[i][1])+" "+ QString::number(a1[i][2])+" "+ QString::number(a1[i][3])<< endl;
+
+
+           }
+
+
+
+
+       } else {
+
+           qDebug() << "Ошибка открытия файла";
+       }
+    file.close();
+}

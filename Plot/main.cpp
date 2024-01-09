@@ -11,6 +11,7 @@ int main(int argc, char *argv[])
     QList<QDate> d = {QDate(2019,1,1),QDate(2022,3,8)};
 
     QList<Data> data = getDateFromDb(&dbase);
+    importFullInfo(&data);
 
     QApplication a(argc, argv);
 
