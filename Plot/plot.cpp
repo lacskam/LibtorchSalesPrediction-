@@ -119,7 +119,7 @@ void Plot::openfile(QValueAxis *axisY, QDateTimeAxis *axisX) {
         for (int i=0;i<list.size()-1;i++) {
             dates.push_back(QDateTime(QDate(list[i].split(" ")[1].split(".")[0].toInt(),list[i].split(" ")[1].split(".")[1].toInt(),list[i].split(" ")[1].split(".")[2].toInt())));
             qDebug()<<dates[i];
-            values.push_back(list[i].split(" ")[0].toFloat());
+            values.push_back(std::abs(list[i].split(" ")[0].toFloat()));
         }
     \
 
@@ -132,9 +132,8 @@ void Plot::openfile(QValueAxis *axisY, QDateTimeAxis *axisX) {
 
         chart->addSeries(ser);
 
-
-
-
+        axisX->setRange(dates.first(), dates.last());
+                axisY->setRange(*std::min_element(values.begin(), values.end()), *std::max_element(values.begin(), values.end()));
 
 
 
@@ -187,6 +186,8 @@ void Plot::update(QList<Data> *dataFromDb, DB *dbase1, QValueAxis *axisY, QDateT
 
     qint32 a = lePickedProd->value();
     axisY->setTitleText("продажи \"" + dbase1->getProductName(&a) + "\"");
+    axisX->setRange(dates.first(), dates.last());
+        axisY->setRange(*std::min_element(values.begin(), values.end()), *std::max_element(values.begin(), values.end()));
 
 }
 

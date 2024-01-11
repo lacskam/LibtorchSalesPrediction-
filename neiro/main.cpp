@@ -1,13 +1,13 @@
 #include"file.h"
 #include <QApplication>
 
-
-
+\
+#include <torch/script.h>
 const int input_size = 3;
 const int output_size = 1;
-const int hidden_size = 1024;
-const int num_epochs = 50;
-const double learning_rate =0.001;
+const int hidden_size =1000;
+const int num_epochs = 100;
+const double learning_rate =1;
 
 
 
@@ -36,41 +36,32 @@ std::tuple<torch::Tensor, torch::Tensor, torch::Tensor, torch::Tensor> normalize
 
 
 class SalesPredictionModel : public torch::nn::Module {
+
+
 public:
     SalesPredictionModel() {
-
         lstm1 = register_module("lstm1", torch::nn::LSTM(torch::nn::LSTMOptions(input_size, hidden_size).num_layers(1).batch_first(true)));
         linear = register_module("linear", torch::nn::Linear(hidden_size, output_size));
     }
 
     torch::Tensor forward(torch::Tensor id_tensor, torch::Tensor days_tensor, torch::Tensor months_tensor) {
-
         auto input_tensor = torch::stack({id_tensor, days_tensor, months_tensor}).unsqueeze(0).transpose(1, 2);
-
-
-
-
-
-
-
 
         auto lstm_output = lstm1->forward(input_tensor);
         auto lstm_out = std::get<0>(lstm_output).squeeze(0);
         return linear->forward(lstm_out.unsqueeze(0));
-
-
     }
 
-private:
+
+
+
+
 
     torch::nn::LSTM lstm1 = nullptr;
     torch::nn::Linear linear = nullptr;
 
-
-
+\
 };
-
-
 
 
 
@@ -97,51 +88,77 @@ int main(int argc, char* argv[]) {
 
 
 
+    std::cout<<"load model?(1,0)"<<std::endl;
+    bool f;
+    std::cin>>f;
+    if (f==1) {
+        torch::serialize::InputArchive archive;
+            archive.load_from("model.pt");
+            model.load(archive);
+    }
 
 
-    for (int epoch = 0; epoch < num_epochs; ++epoch) {
+        std::cout<<"continue learning?(1,0)"<<std::endl;
+        bool g;
+        std::cin>>g;
+
+        if (g==1) {
+
+            for (int epoch = 0; epoch < num_epochs; ++epoch) {
 
 
-        for (auto& batch : *data_loader) {
+                for (auto& batch : *data_loader) {
 
-            auto id_batch = batch.data()[0];
-            auto days_batch = batch.data()[1];
-            auto months_batch = batch.data()[2];
+                    auto id_batch = batch.data()[0];
+                    auto days_batch = batch.data()[1];
+                    auto months_batch = batch.data()[2];
 
-            auto sales_batch1 = batch.data()[3];
-            auto sales_batch = torch::stack({sales_batch1}).unsqueeze(2);
-
-
-            optimizer.zero_grad();
+                    auto sales_batch1 = batch.data()[3];
+                    auto sales_batch = torch::stack({sales_batch1}).unsqueeze(2);
 
 
-            auto predictions = model.forward(id_batch, days_batch, months_batch);
-            auto l = loss(predictions, sales_batch);
+                    optimizer.zero_grad();
 
 
-            l.backward();
-            optimizer.step();
+                    auto predictions = model.forward(id_batch, days_batch, months_batch);
+                    auto l = loss(predictions, sales_batch);
+
+
+                    l.backward();
+                    optimizer.step();
 
 
 
-            std::cout << "epoch: " << epoch<<"  loss:"<< l.item<float>() << std::endl;
+                    std::cout << "epoch: " << epoch<<"  loss:"<< l.item<float>() << std::endl;
+
+                }
+
+            }
+            std::cout<<"trening finished, save?(1,0)"<<std::endl;
+            bool h;
+            std::cin>>h;
+            if (h ==1) {
+                torch::serialize::OutputArchive archive;
+                    model.save(archive);
+                    archive.save_to("model.pt");
+            }
 
         }
 
-    }
+
 
 
     model.eval();
 
-    for (int i = 1; i <= 12; i++) {
-            for (int j = 1; j <= 28; j++) {
+    for (int i = 3; i <= 5; i++) {
+            for (int j = 1; j <= 30; j++) {
                 torch::Tensor test_id = torch::tensor({8}, torch::kFloat32);
                 torch::Tensor test_day = torch::tensor({j}, torch::kFloat32);
                 torch::Tensor test_month = torch::tensor({i}, torch::kFloat32);
                 torch::Tensor predicted_output = model.forward(test_id, test_day, test_month);
                 writeFile(8, j, i,predicted_output.item<float>() );
 
-                std::cout << "Predicted Output: " << predicted_output.item<float>() << std::endl;
+                std::cout << "Output: " << predicted_output.item<float>() << std::endl;
             }
 
     }
