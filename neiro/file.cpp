@@ -15,7 +15,7 @@ void writeFile(int prod, int day, int mou, float dem) {
     file.close();
 }
 
-std::vector<std::tuple<int, int, int, float>> getfile() {
+std::vector<std::tuple<int, int, int, float>> getfile(int *prod) {
     std::vector<std::tuple<int, int, int, float>> data;
     QString filePath = QFileDialog::getOpenFileName(nullptr, "Выберите файл", "", "Файлы с расширением .sex (*.sex);;Все файлы (*.*)");
 
@@ -31,7 +31,7 @@ std::vector<std::tuple<int, int, int, float>> getfile() {
 
             QList<QString> temp = fileContents.split("\n");
             for (int i = 0; i < temp.size() - 1; i++) {
-                if ((temp[i].split(" ")[3]).toInt() !=0 ) {
+                if (temp[i].split(" ")[0].toInt()==*prod) {
                     data.push_back({(temp[i].split(" ")[0]).toInt(), (temp[i].split(" ")[1]).toInt(),
                                     temp[i].split(" ")[2].toInt(), (temp[i].split(" ")[3]).toFloat()});
                     qDebug() << (temp[i].split(" ")[0]).toInt() << " " << (temp[i].split(" ")[1]).toInt() << " "
