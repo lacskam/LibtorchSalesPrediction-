@@ -25,7 +25,7 @@ public:
 public slots:
     void updateChart(QList<Data> *dataFromDb, DB *dbase1, QValueAxis *axisY, QDateTimeAxis *axisX,
                      QSpinBox *lePickedProd, QDateEdit *leFirstDate, QDateEdit *leSecondDate,QMap<QDateTime,qint32> *mapSaless);
-    void getfile(QSpinBox *lePickedProd,QMap<QDateTime,qint32> *mapSales);
+    void getfilePlot(QSpinBox *lePickedProd,QMap<QDateTime,qint32> *mapSales);
     void openfile(QValueAxis *axisY, QDateTimeAxis *axisX);
     void updateNN(DB *dbase1, QValueAxis *axisY, QDateTimeAxis *axisX,
                   QSpinBox *lePickedProd, QDateEdit *leFirstDate, QDateEdit *leSecondDate);

@@ -9,10 +9,11 @@ class SalesPredictionModel : public torch::nn::Module {
 public:
     SalesPredictionModel();
 
-    torch::Tensor forward(torch::Tensor id_tensor, torch::Tensor days_tensor, torch::Tensor months_tensor);
+    torch::Tensor forward(torch::Tensor id_tensor, torch::Tensor days_tensor, torch::Tensor months_tensor,
+                          torch::Tensor temp_tensor,torch::Tensor hum_tensor,torch::Tensor os_tensor,torch::Tensor wind_tensor);
 
 
-    friend void learn(int *prod);
+    friend bool learn(int *prod);
     friend QMap<QDateTime,float> prediction(QList<QDate> *endDate,qint32 *pickedprod);
 
 private:
@@ -26,7 +27,7 @@ private:
 };
 
 
-void learn(int *prod);
+bool learn(int *prod);
 
 
 QMap<QDateTime,float> prediction(QList<QDate> *endDate,qint32 *pickedprod);

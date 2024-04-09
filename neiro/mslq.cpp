@@ -4,6 +4,8 @@
 Data::Data(QString *dateStr) {
 
     date = QDate(dateStr->split("-")[0].toInt(),dateStr->split("-")[1].toInt(),dateStr->split("-")[2].toInt());
+
+
 }
 
 
@@ -118,7 +120,7 @@ QMap<QDateTime,qint32> getNumSalesProd(qint32 *prodId,QList<Data> *dataFromDb, Q
     return numOfSales;
 }
 
-bool comp(const std::vector<int>& a, const std::vector<int>& b)
+bool comp(const std::vector<double>& a, const std::vector<double>& b)
 {
     if (a[2] < b[2]) {
          return 1;
@@ -140,17 +142,32 @@ bool comp(const std::vector<int>& a, const std::vector<int>& b)
 }
 
 void importFullInfo(QList<Data> *data) {
-    QFile file("allprod.sex");
+    QFile file("weather.sex");
     qint32 *a=new qint32;
     QList<QDate> endDAte {QDate(2019,5,1),QDate(2021,8,26)};
 
-    QString tempstr;
-    std::vector<std::vector<int>> a1;
+
+    if (file.open(QIODevice::Append | QIODevice::Text)) {
+
+
+        QTextStream stream(&file);
+
+        for (QDate i = endDAte.at(0);i<endDAte.at(1);i=i.addDays(1)) {
+
+            QDate tempd = i;
+             Weather weather(&tempd);
+             stream <<QString::number(weather.get_temperature())<<" "<<QString::number(weather.get_humidity())<<" "<<QString::number(weather.getOs())
+                   <<" "<<QString::number(weather.getWindSpeed())<<" "<<tempd.toString("yyyy-MM-dd")<< endl;
+        }
+   }
+    file.close();
+    QFile file1("allprod1.sex");
+    std::vector<std::vector<double>> a1;
     QMap<QDateTime,qint32> temp;
-    if (file.open(QIODevice::WriteOnly | QIODevice::Text)) {
+    if (file1.open(QIODevice::WriteOnly | QIODevice::Text)) {
 
 
-           QTextStream stream(&file);
+           QTextStream stream1(&file1);
 
            for (int prod=1;prod<=153;prod++) {
                 *a=prod;
@@ -160,14 +177,17 @@ void importFullInfo(QList<Data> *data) {
 
                for (auto i=temp.begin();i!=temp.end();i++) {
 
-                   a1.push_back({prod,i.key().date().day(),i.key().date().month(),i.value()});
+
+                   a1.push_back({prod,i.key().date().day(),i.key().date().month(),i.value(),i.key().date().year()});
+
                   // stream << QString::number(prod)+" "+ QString::number(i.key().date().day())+" "+ QString::number(i.key().date().month())+" "+ QString::number(i.value())<< endl;
                }
 
            }
             sort(a1.begin(),a1.end(),comp);
            for (int i=0;i<a1.size();i++) {
-                    stream << QString::number(a1[i][0])+" "+ QString::number(a1[i][1])+" "+ QString::number(a1[i][2])+" "+ QString::number(a1[i][3])<< endl;
+                    stream1 << QString::number(a1[i][0])+" "+ QString::number(a1[i][1])+" "+
+                            QString::number(a1[i][2])+" "+ QString::number(a1[i][3])+" "+ QString::number(a1[i][4])<< endl;
 
 
            }
@@ -179,5 +199,5 @@ void importFullInfo(QList<Data> *data) {
 
            qDebug() << "Ошибка открытия файла";
        }
-    file.close();
+    file1.close();
 }

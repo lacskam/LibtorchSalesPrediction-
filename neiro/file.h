@@ -18,5 +18,5 @@
 void writeFile(int prod, int day, int mou, float dem);
 
  std::vector<std::tuple<int, int, int, float>> getfile(int *prod);
-
+std::vector<std::tuple<float,float,float,float,float,float,float,float>> getfile1(int *prod);
 #endif // FILE_H

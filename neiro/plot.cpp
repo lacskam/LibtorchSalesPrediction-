@@ -49,7 +49,7 @@ Plot::Plot(QWidget *parent, QList<Data> *dataFromDb, qint32 *pickedprod, QList<Q
 
     btnGetFile = new QPushButton("Get flie");
     connect(btnGetFile, &QPushButton::clicked, this, [=]() {
-       getfile(lePickedProd,mapSaless);
+       getfilePlot(lePickedProd,mapSaless);
     });
 
     btnOpenFile = new QPushButton("Open flie");
@@ -226,7 +226,7 @@ void Plot::openfile(QValueAxis *axisY, QDateTimeAxis *axisX) {
 }
 
 
-void Plot::getfile(QSpinBox *lePickedProd,QMap<QDateTime,qint32> *mapSales) {
+void Plot::getfilePlot(QSpinBox *lePickedProd,QMap<QDateTime,qint32> *mapSales) {
     QFile file(QString::number(lePickedProd->value())+"_prod.sex");
 
     if (file.open(QIODevice::WriteOnly | QIODevice::Text)) {
@@ -267,7 +267,9 @@ void Plot::updateChart(QList<Data> *dataFromDb, DB *dbase1, QValueAxis *axisY, Q
     chart->series().clear();
 
     for (int i = 0; i < dates.size(); ++i) {
-        ser->append(dates[i].toMSecsSinceEpoch(), values[i]);
+
+        ser->append(dates[i].addMSecs(0).toMSecsSinceEpoch(), values[i]);
+
     }
 
     chart->addSeries(ser);

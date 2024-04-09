@@ -3,6 +3,8 @@ project(neiro LANGUAGES CXX)
 
 set(Torch_DIR /home/asdxx/QtPr/Project/libtorch/share/cmake/Torch)
 find_package(Torch REQUIRED)
+find_package(CURL REQUIRED)
+include_directories(${CURL_INCLUDE_DIRS})
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${TORCH_CXX_FLAGS}")
 
 find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Core Widgets)
@@ -22,10 +24,14 @@ add_executable(neiro
   plot.h
   nn.cpp
   nn.h
+  weather.cpp
+  weather.h
+  /usr/include/nlohmann/json.hpp
 )
 
 # Возможно, следует изменить порядок целей (переместить target_link_libraries в конец)
 # и использовать цели для Qt
+target_link_libraries(neiro PRIVATE ${CURL_LIBRARIES})
 target_link_libraries(neiro PRIVATE ${TORCH_LIBRARIES})
 target_link_libraries(neiro PRIVATE Qt${QT_VERSION_MAJOR}::Core Qt${QT_VERSION_MAJOR}::Widgets Qt${QT_VERSION_MAJOR}::Sql Qt${QT_VERSION_MAJOR}::Charts Qt${QT_VERSION_MAJOR}::Network)
 

@@ -4,7 +4,7 @@
 #include<iostream>
 #include<QSqlDatabase>
 #include<QSqlQuery>
-
+#include "weather.h"
 
 class DB {
     private:
@@ -33,6 +33,7 @@ public:
 
     QDate date;
     QList<qint32> prod;
+
 
 
     Data(QString *dateStr);
