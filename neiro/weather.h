@@ -13,7 +13,7 @@ private:
     CURL *curl;
     CURLcode res;
 
-    std::string api_key = "wZ3pr9T1qVbrtcMF";
+    std::string api_key = "";
 
 
 
